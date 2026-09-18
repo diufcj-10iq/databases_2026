@@ -1,0 +1,71 @@
+Project project_management_db {
+  database_type: 'PostgreSQL'
+}
+
+// СУЩНОСТЬ: Employee (Сотрудник)
+Table employee {
+  employee_id int      [pk, increment, note: 'PK — первичный ключ']
+  full_name   varchar  [not null, note: 'ФИО сотрудника']
+  email       varchar  [not null, unique, note: 'корпоративная почта']
+  position    varchar  [note: 'должность']
+  hire_date   date     [note: 'дата приёма на работу']
+}
+
+
+// СУЩНОСТЬ: Project (Проект)
+Table project {
+  project_id  int      [pk, increment, note: 'PK — первичный ключ']
+  name        varchar  [not null, note: 'название проекта']
+  description text     [note: 'описание проекта']
+  start_date  date     [not null, note: 'дата начала']
+  end_date    date     [note: 'дата окончания']
+  manager_id  int      [ref: > employee.employee_id, not null, note: 'FK — руководитель проекта']
+}
+
+// СУЩНОСТЬ: Task (Задача)
+Table task {
+  task_id     int      [pk, increment, note: 'PK — первичный ключ']
+  project_id  int      [ref: > project.project_id, not null, note: 'FK — проект-владелец задачи']
+  title       varchar  [not null, note: 'название задачи']
+  description text     [note: 'подробное описание']
+  status      varchar  [not null, note: 'новый / в работе / на проверке / завершен']
+  priority    varchar  [note: 'низкий / средний / высокий / критический']
+  due_date    date     [note: 'срок выполнения']
+  created  datetime [default: `now()`, note: 'дата создания']
+}
+
+// СУЩНОСТЬ: Comment (Комментарий)
+Table comment {
+  comment_id int      [pk, increment, note: 'PK — первичный ключ']
+  task_id    int      [ref: > task.task_id, not null, note: 'FK — задача, к которой комментарий']
+  author_id  int      [ref: > employee.employee_id, not null, note: 'FK — автор комментария']
+  text       text     [not null, note: 'содержимое комментария']
+  created datetime [default: `now()`, note: 'дата и время создания']
+}
+
+// СВЯЗУЮЩАЯ СУЩНОСТЬ: Project_Membership (Участие в проекте)
+// Идентифицирующая связь с project и employee
+Table project_membership {
+  project_id  int     [ref: > project.project_id, note: 'FK + часть составного PK']
+  employee_id int     [ref: > employee.employee_id, note: 'FK + часть составного PK']
+  role        varchar [not null, note: 'руководитель / участник']
+  joined   date    [default: `now()`, note: 'дата присоединения к проекту']
+
+  indexes {
+    (project_id, employee_id) [pk, note: 'Составной PK — оба FK входят в ключ → идентифицирующая связь']
+  }
+}
+
+// СВЯЗУЮЩАЯ СУЩНОСТЬ: Assignment (Назначение на задачу)
+// Идентифицирующая связь с task и employee
+Table assignment {
+  task_id     int      [ref: > task.task_id, note: 'FK + часть составного PK']
+  employee_id int      [ref: > employee.employee_id, note: 'FK + часть составного PK']
+  role        varchar  [default: 'исполнитель', note: 'исполнитель / ревьюер / наблюдатель']
+  assigned datetime [default: `now()`, note: 'когда назначен']
+  hours_spent numeric  [note: 'затраченные часы (если учитываем)']
+
+  indexes {
+    (task_id, employee_id) [pk, note: 'Составной PK — оба FK входят в ключ → идентифицирующая связь']
+  }
+}
